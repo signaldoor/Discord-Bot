@@ -5,6 +5,8 @@ from dotenv import load_dotenv
 import os
 import asyncio
 import requests
+import threading
+from http.server import HTTPServer, BaseHTTPRequestHandler
 
 load_dotenv()
 
@@ -36,6 +38,21 @@ You are Leva, also known as UMP45 from Girls' Frontline.
 You speak with dry humor, restrained sarcasm, and quiet emotional depth.
 Stay in character at all times.
 """
+
+def start_http_server():
+    class Handler(BaseHTTPRequestHandler):
+        def do_GET(self):
+            self.send_response(200)
+            self.send_header("Content-type", "text/plain")
+            self.end_headers()
+            self.wfile.write(b"Bot is running")
+
+        def log_message(self, format, *args):
+            return  # silence logs
+
+    port = int(os.getenv("PORT", 8080))
+    server = HTTPServer(("0.0.0.0", port), Handler)
+    server.serve_forever()
 
 # AI CODE
 def ollama_chat(prompt: str, system_prompt: str) -> str:
@@ -154,5 +171,10 @@ async def secret(ctx):
 async def secret_error(ctx, error):
     if isinstance(error, commands.MissingRole):
         await ctx.send("You do not have permission to do that!")
+
+threading.Thread(
+    target=start_http_server,
+    daemon=True
+).start()
 
 bot.run(TOKEN, log_handler=handler, log_level=logging.DEBUG)
